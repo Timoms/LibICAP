@@ -1,5 +1,8 @@
-﻿using System;
+﻿using LibICAP.Models;
+using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Net.Cache;
 using System.Text;
 
 namespace LibICAP.Utilities
@@ -124,6 +127,11 @@ namespace LibICAP.Utilities
 
         public static string NaughtyContent(string getPath, string host)
         {
+            HTMLResponse response = new HTMLResponse
+            {
+                Content = File.ReadAllText(@".\Models\Template.html")
+            };
+
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("ICAP/1.0 200 OK");
             sb.AppendLine("Date: Mon, 10 Jan 2000  09:55:21 GMT");
@@ -137,12 +145,14 @@ namespace LibICAP.Utilities
             sb.AppendLine("Server: Apache/1.3.12 (Unix)");
             sb.AppendLine("Last-Modified: Thu, 02 Nov 2000 13:51:37 GMT");
             sb.AppendLine("ETag: \"63600-1989-3a017169\"");
-            sb.AppendLine("Content-Length: 58");
-            sb.AppendLine("Content-Type: text/html");
+            sb.AppendLine($"Content-Length: {response.Length}");
+            sb.AppendLine("Content-Type: text/html; charset=UTF-8");
             sb.Append("\r\n");
-            sb.AppendLine("3a");
-            sb.AppendLine("Sorry, you are not allowed to access that naughty content.");
+            sb.AppendLine($"{response.HexLength}");
+            sb.AppendLine(response.Content);
             sb.AppendLine("0");
+            sb.Append("\r\n");
+            sb.Append("\r\n");
             return sb.ToString();
         }
     }
