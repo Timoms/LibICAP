@@ -9,7 +9,7 @@ namespace LibICAP.Models
         public int Length { 
             get
             {
-                return Encoding.UTF8.GetBytes(Content).Length;
+                return Encoding.ASCII.GetBytes(Content).Length;
             }
         }
         public string Content { get; set; }

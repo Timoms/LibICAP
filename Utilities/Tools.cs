@@ -23,5 +23,14 @@ namespace LibICAP.Utilities
         {
             return input.Split(new char[] { ' ' }, times).First();
         }
+
+        public static byte[] GetBytes(this string input)
+        {
+            return Encoding.ASCII.GetBytes(input);
+        }
+        public static int CountBytes(this string input)
+        {
+            return Encoding.ASCII.GetBytes(input).Length;
+        }
     }
 }

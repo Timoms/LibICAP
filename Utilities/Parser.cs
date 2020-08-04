@@ -76,15 +76,29 @@ namespace LibICAP.Utilities
             string version = new Regex(@"(GET) (.*) HTTP\/(\d.\d)").Match(x).Groups[3].Value;
             string host = new Regex(@"Host: (.*)").Match(x).Groups[1].Value;
 
-
-            return new TCPRequest
+            if (host.Contains("google.de"))
             {
-                Response = Encoding.ASCII.GetBytes(ResponseBuilder.NaughtyContent(url, host)),
-                Host = host,
-                Type = type,
-                URL = url,
-                Version = version
-            };
+                return new TCPRequest
+                {
+                    Response = Encoding.ASCII.GetBytes(ResponseBuilder.DestinationNotAllowed(url, host)),
+                    Host = host,
+                    Type = type,
+                    URL = url,
+                    Version = version
+                };
+            } else
+            {
+                return new TCPRequest
+                {
+                    Response = Encoding.ASCII.GetBytes(ResponseBuilder.PathOk(url, host)),
+                    Host = host,
+                    Type = type,
+                    URL = url,
+                    Version = version
+                };
+            }
+
+
         } 
         private static TCPRequest R_RESPMOD(TCPRequest x)
         {
