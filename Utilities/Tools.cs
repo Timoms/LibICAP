@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace LibICAP.Utilities
 {
@@ -23,7 +25,6 @@ namespace LibICAP.Utilities
         {
             return input.Split(new char[] { ' ' }, times).First();
         }
-
         public static byte[] GetBytes(this string input)
         {
             return Encoding.ASCII.GetBytes(input);
@@ -32,5 +33,17 @@ namespace LibICAP.Utilities
         {
             return Encoding.ASCII.GetBytes(input).Length;
         }
+        public static string CheckCategory(string domain)
+        {
+            using WebClient web = new WebClient();
+            web.Headers.Add("User-Agent", "Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.1)");
+            web.Headers.Add("Origin", "https://fortiguard.com");
+            web.Headers.Add("Referer", "https://fortiguard.com/webfilter");
+            string fortiResult = web.DownloadString("https://fortiguard.com/webfilter?q=" + domain);
+
+            Regex regex = new Regex("Category: (.*)<");
+            return regex.Match(fortiResult).Groups[1].Value;
+        }
+
     }
 }
