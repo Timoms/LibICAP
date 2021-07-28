@@ -12,34 +12,17 @@ namespace LibICAP.Utilities
     {
         public static string OPTIONSAnswer()
         {
-            #region ExampleAnswer
-            /*
-               ICAP/1.0 200 OK
-               Date: Mon, 10 Jan 2000  09:55:21 GMT
-               Methods: RESPMOD
-               Service: FOO Tech Server 1.0
-               ISTag: "W3E4R7U9-L2E4-2"
-               Encapsulated: null-body=0
-               Max-Connections: 1000
-               Options-TTL: 7200
-               Allow: 204
-               Preview: 2048
-               Transfer-Complete: asp, bat, exe, com
-               Transfer-Ignore: html
-               Transfer-Preview: *
-             */
-            #endregion
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("ICAP/1.0 200 OK");
-            sb.AppendLine("Date: Sat, 18 July 2020  09:55:21 GMT");
-            sb.AppendLine("Methods: RESPMOD");
+            sb.AppendLine($"Date: {Tools.GetCurrentICAPDate()}");
+            sb.AppendLine("Methods: RESPMOD, REQMOD");
             sb.AppendLine("Service: LibICAP 1.0");
             sb.AppendLine("ISTag: \"W3E4R7U9 - L2E4 - 2\"");
             sb.AppendLine("Encapsulated: null-body=0");
             sb.AppendLine("Max-Connections: 10");
             sb.AppendLine("Options-TTL: 7200");
             sb.AppendLine("Allow: 204");
-            sb.AppendLine("Preview: 2048");
+            sb.AppendLine("Preview: 8196");
             sb.AppendLine("Transfer-Complete: asp, bat, exe, com");
             sb.AppendLine("Transfer-Ignore: html");
             sb.AppendLine("Transfer-Preview: *");
@@ -47,7 +30,8 @@ namespace LibICAP.Utilities
             return sb.ToString();
         }
 
-        public enum Resp { Unmodified = 204, NotAllowed = 405}
+        public enum Resp { Unmodified = 204, NotAllowed = 405, MovedPermanently = 301, Example = 0}
+        
         public static string Return(Resp resp, string originReq, string filter)
         {
             if (resp == Resp.Unmodified)
@@ -59,7 +43,7 @@ namespace LibICAP.Utilities
                 StringBuilder ICAPHeader = new StringBuilder();
                 ICAPHeader.AppendLine("ICAP/1.0 200 OK");
                 ICAPHeader.AppendLine("Server: LibICAP/0.1.0");
-                ICAPHeader.AppendLine("Date: Mon, 10 Jan 2000  09:55:21 GMT"); // ddd MMM dd yyyy HH:mm:ss 'GMT'
+                ICAPHeader.AppendLine($"Date: {Tools.GetCurrentICAPDate()}");
                 ICAPHeader.AppendLine("Connection: close");
                 ICAPHeader.AppendLine("ISTag: W3E4R7U9-L2E4-2"); // ddd MMM dd yyyy HH:mm:ss 'GMT'
                 ICAPHeader.AppendLine($"Encapsulated: req-hdr=0, null-body={originReq.ToString().CountBytes() + 2}"); 
@@ -75,7 +59,7 @@ namespace LibICAP.Utilities
             } 
             else if (resp == Resp.NotAllowed) 
             {
-                var template = File.ReadAllText(@"C:\Users\heckel.timo\source\repos\LibICAP\Models\Template.html"); //TODO: remove hardcoded path. Expl: used to modify template on the fly
+                var template = File.ReadAllText(@"./Models/Template.html"); //TODO: remove hardcoded path. Expl: used to modify template on the fly
                 template = template.Replace("{AAP_POLICY}", filter);
 
                 HTMLResponse response = new HTMLResponse
@@ -93,7 +77,7 @@ namespace LibICAP.Utilities
 
                 StringBuilder ResponseHeader = new StringBuilder();
                 ResponseHeader.AppendLine($"HTTP/1.1 403 Forbidden");
-                ResponseHeader.AppendLine($"Date: Wed, 08 Nov 2000 16:02:10 GMT");
+                ResponseHeader.AppendLine($"Date: {Tools.GetCurrentICAPDate()}");
                 ResponseHeader.AppendLine("Server: Apache/1.3.12 (Unix)");
                 ResponseHeader.AppendLine("Last-Modified: Thu, 02 Nov 2000 13:51:37 GMT");
                 ResponseHeader.AppendLine("ETag: \"63600-1989-3a017169\"");
@@ -105,8 +89,8 @@ namespace LibICAP.Utilities
                 // res-body: ResponseBody starts after the header, thus ResponseHeader byte length
                 StringBuilder ICAPHeader = new StringBuilder();
                 ICAPHeader.AppendLine("ICAP/1.0 200 OK");
-                ICAPHeader.AppendLine("Date: Mon, 10 Jan 2000  09:55:21 GMT"); // ddd MMM dd yyyy HH:mm:ss 'GMT'
-                ICAPHeader.AppendLine("Server: ICAP-Server-Software/1.0");
+                ICAPHeader.AppendLine($"Date: {Tools.GetCurrentICAPDate()}");
+                ICAPHeader.AppendLine("Server: LibICAP/1.0");
                 ICAPHeader.AppendLine("Connection: close");
                 ICAPHeader.AppendLine("ISTag: \"W3E4R7U9-L2E4-2\"");
                 ICAPHeader.AppendLine($"Encapsulated: res-hdr=0, res-body={ResponseHeader.ToString().CountBytes() + 2}");
@@ -124,168 +108,125 @@ namespace LibICAP.Utilities
 
                 return ResponseBuilder.ToString();
             }
-            return "";
-
-        }
-        public static string ReturnContent(string getPath, string host)
-        {
-            host = "http://" + host.Replace("\r", "");
-
-            try
+            else if (resp == Resp.MovedPermanently)
             {
-                //WebRequest request = WebRequest.Create(host + getPath);
-                //request.Method = "GET";
-                //WebResponse resp = request.GetResponse();
-                //Stream stream = resp.GetResponseStream();
-                //StreamReader reader = new StreamReader(stream);
-                //string content = reader.ReadToEnd();
-                //reader.Close();
-                //resp.Close();
+                StringBuilder ResponseHeader = new StringBuilder();
+                ResponseHeader.AppendLine($"HTTP/1.1 301 Moved Permanently");
+                ResponseHeader.AppendLine($"Location: http://www.example.org/index.asp");
+                //ResponseHeader.Append("\r\n");
+
+
+                StringBuilder ICAPHeader = new StringBuilder();
+                ICAPHeader.AppendLine("ICAP/1.0 200 OK");
+                ICAPHeader.AppendLine($"Date: {Tools.GetCurrentICAPDate()}");
+                ICAPHeader.AppendLine("Server: LibICAP/1.0");
+                ICAPHeader.AppendLine("Connection: close");
+                ICAPHeader.AppendLine("ISTag: \"W3E4R7U9-L2E4-2\"");
+                ICAPHeader.AppendLine($"Encapsulated: res-hdr=0, res-body={ResponseHeader.ToString().CountBytes() + 2}");
+
+                StringBuilder ResponseBuilder = new StringBuilder();
+                ResponseBuilder.Append(ICAPHeader);
+                ResponseBuilder.Append("\r\n");
+                ResponseBuilder.Append(ResponseHeader);
+                ResponseBuilder.Append("\r\n");
+                ResponseBuilder.Append("\r\n");
+            }
+            else if (resp == Resp.Example)
+            {
+                #region example
                 //HTMLResponse response = new HTMLResponse
                 //{
-                //    Content = content
+                //    Content = ""
                 //};
+
+                //StringBuilder ResponseBody = new StringBuilder();
+                //ResponseBody.AppendLine("HTTP/1.1 200 OK");
+                //ResponseBody.AppendLine("Date: Mon, 10 Jan 2000  09:55:21 GMT");
+                //ResponseBody.AppendLine("Via: 1.0 icap.example.org (ICAP Example RespMod Service 1.1)");
+                //ResponseBody.AppendLine("Server: Apache/1.3.6 (Unix)");
+                //ResponseBody.AppendLine("ETag: \"63840-1ab7-378d415b\"");
+                //ResponseBody.AppendLine("Content-Type: text/html");
+                //ResponseBody.AppendLine($"Content-Length: {response.Length}");
+
+
+                //StringBuilder ResponseFooter = new StringBuilder();
+                //ResponseFooter.AppendLine($"{response.HexLength}");
+                //ResponseFooter.AppendLine(response.Content);
+                //ResponseFooter.AppendLine("0");
+
+                //StringBuilder ResponseHeader = new StringBuilder();
+                //ResponseHeader.AppendLine("ICAP/1.0 200 OK");
+                //ResponseHeader.AppendLine($"Date: {Tools.GetCurrentICAPDate()}");
+                //ResponseHeader.AppendLine("Server: LibICAP/1.0");
+                //ResponseHeader.AppendLine("Connection: close");
+                //ResponseHeader.AppendLine("ISTag: \"W3E4R7U9-L2E4-2\"");
+                //ResponseHeader.AppendLine($"Encapsulated: res-hdr=0, res-body={ResponseBody.ToString().CountBytes() + 2}");
+
+
+                //StringBuilder ResponseBuilder = new StringBuilder();
+
+                //ResponseBuilder.Append(ResponseHeader);
+                //ResponseBuilder.Append("\r\n");
+                //ResponseBuilder.Append(ResponseBody);
+                //ResponseBuilder.Append("\r\n");
+                //ResponseBuilder.Append(ResponseFooter);
+                //ResponseBuilder.Append("\r\n");
+                //ResponseBuilder.Append("\r\n");
+
+                //return ResponseBuilder.ToString();
+
+                #endregion
+
+                string[] split = originReq.Split("\r\n\r\n"); // 0 = HTTP/1.1, 1 = <html>...
+                string content = split[2];
 
                 HTMLResponse response = new HTMLResponse
                 {
-                    Content = "You can visit that page!"
+                    Content = content
                 };
 
-                // Hex-Length: Chunk sizes within an encapsulated body (used to send message in chunks, splitting not needed for a static response)
-                StringBuilder ResponseBody = new StringBuilder();
-                ResponseBody.AppendLine($"{response.HexLength}");
-                ResponseBody.AppendLine(response.Content);
-                ResponseBody.AppendLine("0");
-                //ResponseBody.Append("\r\n");
-                //ResponseBody.Append("\r\n");
+                // 0, 1
+                //StringBuilder ResponseBody = new StringBuilder(); 
+                //ResponseBody.AppendLine("HTTP/1.1 301 Moved Permanently");
+                //ResponseBody.AppendLine("Location: http://example.com/");
+                //ResponseBody.AppendLine("Via: 1.0 icap.example.org (ICAP Example RespMod Service 1.1)");
+                //ResponseBody.AppendLine("Server: Apache/1.3.6 (Unix)");
+                //ResponseBody.AppendLine("ETag: \"63840-1ab7-378d415b\"");
+                //ResponseBody.AppendLine("Content-Type: text/html");
+                //ResponseBody.AppendLine($"Content-Length: {response.Length}");
+
+                // 0,2 
+                StringBuilder ResponseFooter = new StringBuilder();
+                ResponseFooter.AppendLine($"{response.HexLength}");
+                ResponseFooter.AppendLine(response.Content);
+                ResponseFooter.AppendLine("0");
 
                 StringBuilder ResponseHeader = new StringBuilder();
-                ResponseHeader.AppendLine($"HTTP/1.1 200 OK");
-                ResponseHeader.AppendLine($"Date: Wed, 08 Nov 2000 16:02:10 GMT");
-                ResponseHeader.AppendLine("Server: Apache/1.3.12 (Unix)");
-                ResponseHeader.AppendLine("Last-Modified: Thu, 02 Nov 2000 13:51:37 GMT");
-                ResponseHeader.AppendLine("ETag: \"63600-1989-3a017169\"");
-                ResponseHeader.AppendLine($"Content-Length: {response.Length}");
-                ResponseHeader.AppendLine("Content-Type: text/html");
-                //ResponseHeader.Append("\r\n");
-
-                // res-hdr: ResponseHeader starts right after this message
-                // res-body: ResponseBody starts after the header, thus ResponseHeader byte length
-                StringBuilder ICAPHeader = new StringBuilder();
-                ICAPHeader.AppendLine("ICAP/1.0 200 OK");
-                ICAPHeader.AppendLine("Date: Mon, 10 Jan 2000  09:55:21 GMT"); // ddd MMM dd yyyy HH:mm:ss 'GMT'
-                ICAPHeader.AppendLine("Server: ICAP-Server-Software/1.0");
-                ICAPHeader.AppendLine("Connection: close");
-                ICAPHeader.AppendLine("ISTag: \"W3E4R7U9-L2E4-2\"");
-                ICAPHeader.AppendLine($"Encapsulated: res-hdr=0, res-body={ResponseHeader.ToString().CountBytes() + 2}");
-                //ICAPHeader.Append("\r\n");
-
+                ResponseHeader.AppendLine("ICAP/1.0 200 OK");
+                ResponseHeader.AppendLine($"Date: {Tools.GetCurrentICAPDate()}");
+                ResponseHeader.AppendLine("Server: LibICAP/1.0");
+                ResponseHeader.AppendLine("Connection: close");
+                ResponseHeader.AppendLine("ISTag: \"W3E4R7U9-L2E4-2\"");
+                ResponseHeader.AppendLine($"Encapsulated: res-hdr=0, res-body={split[0].CountBytes() + 2}");
+                // http://google.de
+                
                 StringBuilder ResponseBuilder = new StringBuilder();
 
-                ResponseBuilder.Append(ICAPHeader);
-                ResponseBuilder.Append("\r\n");
                 ResponseBuilder.Append(ResponseHeader);
                 ResponseBuilder.Append("\r\n");
-                ResponseBuilder.Append(ResponseBody);
+                ResponseBuilder.Append(split[0]);
+                ResponseBuilder.Append("\r\n");
+                ResponseBuilder.Append(ResponseFooter);
                 ResponseBuilder.Append("\r\n");
                 ResponseBuilder.Append("\r\n");
+
+                string m  = ResponseBuilder.ToString();
 
                 return ResponseBuilder.ToString();
-            } 
-            catch (Exception)
-            {
-                return DestinationNotAllowed(getPath, host);
+
             }
+            return "";
 
-
-           
-
-        }
-
-        public static string PathOk(string getPath, string host)
-        {
-            StringBuilder ResponseHeader = new StringBuilder();
-            ResponseHeader.AppendLine($"HTTP/1.1 204 No Content");
-            ResponseHeader.AppendLine($"Date: Wed, 08 Nov 2000 16:02:10 GMT");
-            ResponseHeader.AppendLine("Server: Apache/1.3.12 (Unix)");
-            ResponseHeader.AppendLine("Last-Modified: Thu, 02 Nov 2000 13:51:37 GMT");
-            ResponseHeader.AppendLine("ETag: \"63600-1989-3a017169\"");
-            //ResponseHeader.AppendLine("Via: 1.0 10.0.2.212:1344 LibICAP");
-            //ResponseHeader.AppendLine("Accept: */*");
-            //ResponseHeader.AppendLine("Accept-Encoding: *");
-            //ResponseHeader.AppendLine("If-None-Match: \"xyzzy\", \"r2d2xxxx\"");
-            //ResponseHeader.Append("\r\n");
-
-            // res-hdr: ResponseHeader starts right after this message
-            // res-body: ResponseBody starts after the header, thus ResponseHeader byte length
-            StringBuilder ICAPHeader = new StringBuilder();
-            ICAPHeader.AppendLine("ICAP/1.0 204 No Content");
-            ICAPHeader.AppendLine("Date: Mon, 10 Jan 2000  09:55:21 GMT"); // ddd MMM dd yyyy HH:mm:ss 'GMT'
-            ICAPHeader.AppendLine("Server: 10.0.2.212:1344/1.0");
-            //ICAPHeader.AppendLine("Connection: close");
-            //ICAPHeader.AppendLine("ISTag: \"W3E4R7U9-L2E4-2\"");
-            //ICAPHeader.AppendLine($"Encapsulated: res-hdr=0, res-body={ResponseHeader.ToString().CountBytes() + 2}");
-            //ICAPHeader.Append("\r\n");
-
-            StringBuilder ResponseBuilder = new StringBuilder();
-
-            ResponseBuilder.Append(ICAPHeader);
-            //ResponseBuilder.Append("\r\n");
-            //ResponseBuilder.Append(ResponseHeader);
-            //ResponseBuilder.Append("\r\n");
-
-            var x = ResponseBuilder.ToString();
-
-            return ResponseBuilder.ToString();
-        }
-
-        public static string DestinationNotAllowed(string getPath, string host)
-        {
-            HTMLResponse response = new HTMLResponse
-            {
-                Content = File.ReadAllText(@".\Models\Template.html")
-            };
-
-            // Hex-Length: Chunk sizes within an encapsulated body (used to send message in chunks, splitting not needed for a static response)
-            StringBuilder ResponseBody = new StringBuilder();
-            ResponseBody.AppendLine($"{response.HexLength}");
-            ResponseBody.AppendLine(response.Content);
-            ResponseBody.AppendLine("0");
-            //ResponseBody.Append("\r\n");
-            //ResponseBody.Append("\r\n");
-
-            StringBuilder ResponseHeader = new StringBuilder();
-            ResponseHeader.AppendLine($"HTTP/1.1 403 Forbidden");
-            ResponseHeader.AppendLine($"Date: Wed, 08 Nov 2000 16:02:10 GMT");
-            ResponseHeader.AppendLine("Server: Apache/1.3.12 (Unix)");
-            ResponseHeader.AppendLine("Last-Modified: Thu, 02 Nov 2000 13:51:37 GMT");
-            ResponseHeader.AppendLine("ETag: \"63600-1989-3a017169\"");
-            ResponseHeader.AppendLine($"Content-Length: {response.Length}");
-            ResponseHeader.AppendLine("Content-Type: text/html");
-            //ResponseHeader.Append("\r\n");
-
-            // res-hdr: ResponseHeader starts right after this message
-            // res-body: ResponseBody starts after the header, thus ResponseHeader byte length
-            StringBuilder ICAPHeader = new StringBuilder();
-            ICAPHeader.AppendLine("ICAP/1.0 200 OK");
-            ICAPHeader.AppendLine("Date: Mon, 10 Jan 2000  09:55:21 GMT"); // ddd MMM dd yyyy HH:mm:ss 'GMT'
-            ICAPHeader.AppendLine("Server: ICAP-Server-Software/1.0");
-            ICAPHeader.AppendLine("Connection: close");
-            ICAPHeader.AppendLine("ISTag: \"W3E4R7U9-L2E4-2\"");
-            ICAPHeader.AppendLine($"Encapsulated: res-hdr=0, res-body={ResponseHeader.ToString().CountBytes() + 2}");
-            //ICAPHeader.Append("\r\n");
-
-            StringBuilder ResponseBuilder = new StringBuilder();
-
-            ResponseBuilder.Append(ICAPHeader);
-            ResponseBuilder.Append("\r\n");
-            ResponseBuilder.Append(ResponseHeader);
-            ResponseBuilder.Append("\r\n");
-            ResponseBuilder.Append(ResponseBody);
-            ResponseBuilder.Append("\r\n");
-            ResponseBuilder.Append("\r\n");
-
-            return ResponseBuilder.ToString();
         }
     }
 }

@@ -44,6 +44,10 @@ namespace LibICAP.Utilities
             Regex regex = new Regex("Category: (.*)<");
             return regex.Match(fortiResult).Groups[1].Value;
         }
+        public static string GetCurrentICAPDate()
+        {
+            return DateTime.Now.ToString("ddd MMM dd yyyy HH:mm:ss 'GMT'");
+        }
 
     }
 }

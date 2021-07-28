@@ -1,14 +1,15 @@
 ﻿using LibICAP.Utilities;
 
+using System.Net;
+
 namespace LibICAP
 {
-    class Program
+    public class Program
     {
-        public static Logger Out = new Logger();
         static void Main()
         {
             // LibICAP Baryonic
-            _ = new Server("10.0.2.212", 1344, 2048);
+            _ = new Server("0.0.0.0", 8080, 245000);
         }
     }
 }

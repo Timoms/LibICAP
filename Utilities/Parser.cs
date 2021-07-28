@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.RegularExpressions;
+using static LibICAP.Utilities.Logger;
 
 namespace LibICAP.Utilities
 {
@@ -14,14 +15,19 @@ namespace LibICAP.Utilities
         /// <summary>
         /// Checks for fist line and decides on the next parser
         /// </summary>
-        private static readonly Logger _Logger = new Logger();
+        private static readonly Logger _Logger = new Logger(LogLevel.All);
+        /// <summary>
+        /// Analyzes data and decides on next steps.
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
         public static TCPRequest ParseData(string data)
         {
             if (data == "")
             {
                 return null;
             }
-            string[] chunks = data.Split("\r\n\r\n", StringSplitOptions.RemoveEmptyEntries); // split on three main chunks -> ICAP - REQUEST - HEADEr
+            string[] chunks = data.Split("\r\n\r\n", 2, StringSplitOptions.RemoveEmptyEntries); // split on three main chunks -> ICAP - REQUEST - HEADEr
 
             //--string[] ICAPRequest = chunks[0].Split("\r\n", StringSplitOptions.RemoveEmptyEntries); // contains client informations
             //--string[] DestinationRequest = chunks[1].Split("\r\n", StringSplitOptions.RemoveEmptyEntries); // contains request or response information
@@ -30,10 +36,14 @@ namespace LibICAP.Utilities
             if (chunks[0].Contains("REQMOD"))
             {
                 return R_REQMOD(chunks[1]);
-            } 
+            }
             else if (chunks[0].Contains("OPTIONS"))
             {
                 return R_OPTIONS();
+            }
+            else if (chunks[0].Contains("RESPMOD"))
+            {
+                return R_RESPMOD(chunks[0], chunks[1]);
             }
             else
             {
@@ -65,7 +75,7 @@ namespace LibICAP.Utilities
             Host: client.teamviewer.com
             User - Agent: Mozilla / 4.0(compatible; MSIE 6.0; DynGate)
             Accept: *             
-             */         
+             */
         }
         /// <summary>
         /// Parses OPTIONS request and builds the reponse, no handling needed
@@ -82,13 +92,15 @@ namespace LibICAP.Utilities
         /// </summary>
         private static TCPRequest R_REQMOD(string x)
         {
-            string type = new Regex(@"(GET) (.*) HTTP\/(\d.\d)").Match(x).Groups[1].Value;
+            //string type = new Regex(@"(GET) (.*) HTTP\/(\d.\d)").Match(x).Groups[1].Value;
             string url = new Regex(@"(GET) (.*) HTTP\/(\d.\d)").Match(x).Groups[2].Value;
             string version = new Regex(@"(GET) (.*) HTTP\/(\d.\d)").Match(x).Groups[3].Value;
             string host = new Regex(@"Host: (.*)").Match(x).Groups[1].Value.Replace("\r", "").Replace("\n", "");
 
-            string cat = Tools.CheckCategory(host);
-            _Logger.Log(Logger.LogLevel.Error, "Found Category " + cat);
+            // VVV Disabled for performance reasons VVV \\
+
+            //string cat = Tools.CheckCategory(host);
+            //_Logger.Log(LogLevel.Error, "Found Category " + cat); 
 
             if (AdBlockList.Contains(host))
             {
@@ -100,7 +112,7 @@ namespace LibICAP.Utilities
                     URL = url,
                     Version = version
                 };
-            } 
+            }
             else if (PrivacyList.Contains(host))
             {
                 return new TCPRequest
@@ -111,7 +123,7 @@ namespace LibICAP.Utilities
                     URL = url,
                     Version = version
                 };
-            } 
+            }
             else
             {
                 return new TCPRequest
@@ -123,37 +135,31 @@ namespace LibICAP.Utilities
                     Version = version
                 };
             }
+        }
 
-
-            //if (host.Contains("example.com"))
-            //{
-            //    return new TCPRequest
-            //    {
-            //        Response = Encoding.ASCII.GetBytes(ResponseBuilder.Return(ResponseBuilder.Resp.NotAllowed, x)),
-            //        Host = host,
-            //        Type = "REQMOD",
-            //        URL = url,
-            //        Version = version
-            //    };
-            //}
-            //else
-            //{
-            //    return new TCPRequest
-            //    {
-            //        Response = Encoding.ASCII.GetBytes(ResponseBuilder.Return(ResponseBuilder.Resp.Unmodified, x)),
-            //        Host = host,
-            //        Type = "REQMOD",
-            //        URL = url,
-            //        Version = version
-            //    };
-            //}
-        } 
-        private static TCPRequest R_RESPMOD(TCPRequest x)
+        private static TCPRequest R_RESPMOD(string icapheader, string content)
         {
+            _Logger.Log(LogLevel.Warning, "Handling RESPMOD");
 
-           // var encaps = x[3].ColonElement(); // contains GET/POST Request
-
-           return x;
+            //string url = new Regex(@"(GET) (.*) HTTP\/(\d.\d)").Match(x).Groups[2].Value;
+            //string version = new Regex(@"(GET) (.*) HTTP\/(\d.\d)").Match(x).Groups[3].Value;
+            string host = new Regex(@"X-Server-IP: (.*)").Match(icapheader).Groups[1].Value.Replace("\r", "").Replace("\n", "");
+            return new TCPRequest
+            {
+                Response = Encoding.ASCII.GetBytes(ResponseBuilder.Return(ResponseBuilder.Resp.Example, content, "")),
+                Host = host,
+                Type = "RESPMOD",
+                URL = null,
+                Version = null
+            };
+            //return new TCPRequest
+            //{
+            //    Response = Encoding.ASCII.GetBytes(ResponseBuilder.Return(ResponseBuilder.Resp.NotAllowed, x, "Advertising")),
+            //    Host = host,
+            //    Type = "RESPMOD",
+            //    URL = url,
+            //    Version = version
+            //};
         }
     }
 }
